@@ -17,8 +17,8 @@
   }
 
   const CAMERAS = [
-    { id: 'CAM-01', label: 'MAIN ENTRANCE', video: 'videos/cam01.mp4' },
-    { id: 'CAM-02', label: 'LOADING DOCK', video: 'videos/cam02.mp4' },
+    { id: 'CAM-01', label: 'MAIN ENTRANCE', video: 'videos/cam01.mp4', events: [{ id: 'event1', src: 'videos/cam01_event1.mp4' }] },
+    { id: 'CAM-02', label: 'LOADING DOCK', video: 'videos/cam02.mp4', },
     { id: 'CAM-03', label: 'STAGE A', video: 'videos/cam03.mp4' },
     { id: 'CAM-04', label: 'STAGE B', video: 'videos/cam04.mp4' },
     { id: 'CAM-05', label: 'GREEN ROOM', video: 'videos/cam05.mp4' },
@@ -70,7 +70,10 @@
     memUsage: 62,
     diskUsage: 78,
     logId: 0,
-    videoTimestamps: {}
+    videoTimestamps: {},
+    videoMode: {},
+    loopTime: {},
+    eventIndex: {}
   };
 
   const elements = {
@@ -143,8 +146,12 @@
     `;
 
     const feedArea = feed.querySelector('.camera-feed-area');
-    if (videoCache[index]) {
-      feedArea.insertBefore(videoCache[index], feedArea.firstChild);
+    const video = videoCache[index];
+    if (video) {
+      feedArea.insertBefore(video, feedArea.firstChild);
+      if (!video.paused && !video.ended) {
+        feed.classList.add('video-active');
+      }
     }
 
     feed.addEventListener('click', () => handleCameraClick(index));
@@ -208,16 +215,67 @@
 
   function handleCameraClick(index) {
     if (state.selectedCamera === index) {
+      restoreAmbient(index);
       state.selectedCamera = null;
     } else {
+      if (state.selectedCamera !== null) {
+        restoreAmbient(state.selectedCamera);
+      }
       state.selectedCamera = index;
     }
     renderApp();
   }
 
   function handleBackToGrid() {
+    if (state.selectedCamera !== null) {
+      restoreAmbient(state.selectedCamera);
+    }
     state.selectedCamera = null;
     renderApp();
+  }
+
+  function triggerEvent(index) {
+    const camera = CAMERAS[index];
+    if (!camera.events || camera.events.length === 0) return;
+    if (state.videoMode[index] === 'event') return;
+
+    const video = videoCache[index];
+    if (!video) return;
+
+    state.loopTime[index] = video.currentTime;
+
+    const eventIdx = state.eventIndex[index] || 0;
+    const eventData = camera.events[eventIdx];
+
+    state.eventIndex[index] = (eventIdx + 1) % camera.events.length;
+
+    state.videoMode[index] = 'event';
+
+    video.loop = false;
+    video.src = eventData.src;
+    video.currentTime = 0;
+    video.play().catch(() => restoreAmbient(index));
+
+    video.onended = () => restoreAmbient(index);
+    video.onerror = () => restoreAmbient(index);
+  }
+
+  function restoreAmbient(index) {
+    if (state.videoMode[index] !== 'event') return;
+
+    const camera = CAMERAS[index];
+    const video = videoCache[index];
+    if (!video) return;
+
+    video.onended = null;
+    video.onerror = null;
+
+    state.videoMode[index] = 'loop';
+
+    video.loop = true;
+    video.src = camera.video;
+    video.currentTime = state.loopTime[index] || 0;
+    video.play().catch(() => { });
   }
 
   function getRandomLog() {
@@ -331,6 +389,11 @@
       source2.type = 'video/mp4';
       video.appendChild(source2);
 
+      video.addEventListener('playing', () => {
+        const feed = video.closest('.camera-feed');
+        if (feed) feed.classList.add('video-active');
+      });
+
       videoCache[index] = video;
     });
   }
@@ -343,6 +406,41 @@
     startLogInterval();
     updateClock();
     startLiveUpdates();
+
+    document.addEventListener('keydown', (e) => {
+      if (e.repeat) return;
+
+      const key = e.key;
+
+      const keyMap = {
+        '1': 0, '2': 1, '3': 2, '4': 3, '5': 4,
+        '6': 5, '7': 6, '8': 7, '9': 8, '0': 9,
+        '-': 10, '=': 11
+      };
+
+      if (key in keyMap) {
+        const index = keyMap[key];
+        if (state.selectedCamera !== null) {
+          restoreAmbient(state.selectedCamera);
+        }
+        state.selectedCamera = index;
+        renderApp();
+        return;
+      }
+
+      if (key === 'g' || key === 'G') {
+        if (state.selectedCamera !== null) {
+          restoreAmbient(state.selectedCamera);
+        }
+        state.selectedCamera = null;
+        renderApp();
+        return;
+      }
+
+      if ((key === 'e' || key === 'E') && state.selectedCamera !== null) {
+        triggerEvent(state.selectedCamera);
+      }
+    });
   }
 
   if (document.readyState === 'loading') {
