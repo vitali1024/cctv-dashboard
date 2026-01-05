@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Film Set Surveillance System - CCTV Dashboard">
+  <title>CCTV Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📹</text></svg>">
+</head>
+
+<body>
+  <div class="crt-scanlines"></div>
+
+  <div id="app">
+    <header class="status-bar">
+      <div class="status-section">
+        <div class="status-item">
+          <span class="status-label">STATUS:</span>
+          <span class="status-value online glow">● ONLINE</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">CAMS:</span>
+          <span class="status-value">12/12</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">REC:</span>
+          <span class="status-value destructive rec-blink">● ACTIVE</span>
+        </div>
+      </div>
+
+      <div class="status-title glow">▌SURVEILLANCE SYSTEM▐</div>
+
+      <div class="status-section">
+        <div class="status-stats">
+          <span>CPU: <span class="value" id="cpu-stat">34%</span></span>
+          <span>MEM: <span class="value" id="mem-stat">62%</span></span>
+          <span>DISK: <span class="value" id="disk-stat">78%</span></span>
+        </div>
+        <div class="status-time glow" id="status-clock">00:00:00</div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div id="camera-grid" class="camera-grid"></div>
+
+      <div id="expanded-view" class="expanded-view hidden">
+        <button class="back-btn" id="back-btn">◄ GRID</button>
+        <div class="expanded-main">
+          <div id="expanded-camera"></div>
+        </div>
+        <div id="expanded-sidebar" class="expanded-sidebar"></div>
+      </div>
+
+      <footer class="terminal">
+        <div class="terminal-header">
+          <div class="title">
+            <span class="title-text glow">▶ SYSTEM MONITOR</span>
+            <span class="version">v2.4.1</span>
+          </div>
+          <div class="status">
+            <span>PID: 8842</span>
+            <span>|</span>
+            <span class="active">● ACTIVE</span>
+          </div>
+        </div>
+        <div class="terminal-logs" id="terminal-logs"></div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+
+</html>
