@@ -17,7 +17,7 @@
   }
 
   const CAMERAS = [
-    { id: 'CAM-01', label: 'MAIN ENTRANCE', standardLoop: 'videos/cam01.mp4', eventVideo: 'videos/cam01_event1.mp4', postLoop: 'videos/cam01_post.mp4' },
+    { id: 'CAM-01', label: 'MAIN ENTRANCE', standardLoop: './videos/cam01.mp4', eventVideo: './videos/cam01_event1.mp4', postLoop: './videos/cam01_post.mp4' },
     { id: 'CAM-02', label: 'LOADING DOCK', standardLoop: 'videos/cam02.mp4', postLoop: 'videos/cam02.mp4' },
     { id: 'CAM-03', label: 'STAGE A', standardLoop: 'videos/cam03.mp4', postLoop: 'videos/cam03.mp4' },
     { id: 'CAM-04', label: 'STAGE B', standardLoop: 'videos/cam04.mp4', postLoop: 'videos/cam04.mp4' },
