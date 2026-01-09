@@ -17,18 +17,18 @@
   }
 
   const CAMERAS = [
-    { id: 'CAM-01', label: 'MAIN ENTRANCE', video: 'videos/cam01.mp4', events: [{ id: 'event1', src: 'videos/cam01_event1.mp4' }] },
-    { id: 'CAM-02', label: 'LOADING DOCK', video: 'videos/cam02.mp4', },
-    { id: 'CAM-03', label: 'STAGE A', video: 'videos/cam03.mp4' },
-    { id: 'CAM-04', label: 'STAGE B', video: 'videos/cam04.mp4' },
-    { id: 'CAM-05', label: 'GREEN ROOM', video: 'videos/cam05.mp4' },
-    { id: 'CAM-06', label: 'WARDROBE', video: 'videos/cam06.mp4' },
-    { id: 'CAM-07', label: 'MAKEUP', video: 'videos/cam07.mp4' },
-    { id: 'CAM-08', label: 'CRAFT SERVICES', video: 'videos/cam08.mp4' },
-    { id: 'CAM-09', label: 'PARKING LOT A', video: 'videos/cam09.mp4' },
-    { id: 'CAM-10', label: 'PARKING LOT B', video: 'videos/cam10.mp4' },
-    { id: 'CAM-11', label: 'BACK ALLEY', video: 'videos/cam11.mp4' },
-    { id: 'CAM-12', label: 'CONTROL ROOM', video: 'videos/cam12.mp4' }
+    { id: 'CAM-01', label: 'MAIN ENTRANCE', standardLoop: 'videos/cam01.mp4', eventVideo: 'videos/cam01_event1.mp4', postLoop: 'videos/cam01_post.mp4' },
+    { id: 'CAM-02', label: 'LOADING DOCK', standardLoop: 'videos/cam02.mp4', postLoop: 'videos/cam02.mp4' },
+    { id: 'CAM-03', label: 'STAGE A', standardLoop: 'videos/cam03.mp4', postLoop: 'videos/cam03.mp4' },
+    { id: 'CAM-04', label: 'STAGE B', standardLoop: 'videos/cam04.mp4', postLoop: 'videos/cam04.mp4' },
+    { id: 'CAM-05', label: 'GREEN ROOM', standardLoop: 'videos/cam05.mp4', postLoop: 'videos/cam05.mp4' },
+    { id: 'CAM-06', label: 'WARDROBE', standardLoop: 'videos/cam06.mp4', postLoop: 'videos/cam06.mp4' },
+    { id: 'CAM-07', label: 'MAKEUP', standardLoop: 'videos/cam07.mp4', postLoop: 'videos/cam07.mp4' },
+    { id: 'CAM-08', label: 'CRAFT SERVICES', standardLoop: 'videos/cam08.mp4', postLoop: 'videos/cam08.mp4' },
+    { id: 'CAM-09', label: 'PARKING LOT A', standardLoop: 'videos/cam09.mp4', postLoop: 'videos/cam09.mp4' },
+    { id: 'CAM-10', label: 'PARKING LOT B', standardLoop: 'videos/cam10.mp4', postLoop: 'videos/cam10.mp4' },
+    { id: 'CAM-11', label: 'BACK ALLEY', standardLoop: 'videos/cam11.mp4', postLoop: 'videos/cam11.mp4' },
+    { id: 'CAM-12', label: 'CONTROL ROOM', standardLoop: 'videos/cam12.mp4', postLoop: 'videos/cam12.mp4' }
   ];
 
   const LOG_MESSAGES = [
@@ -71,9 +71,8 @@
     diskUsage: 78,
     logId: 0,
     videoTimestamps: {},
-    videoMode: {},
-    loopTime: {},
-    eventIndex: {}
+    cameraPhase: {},
+    eventPlaying: {}
   };
 
   const elements = {
@@ -215,54 +214,57 @@
 
   function handleCameraClick(index) {
     if (state.selectedCamera === index) {
-      restoreAmbient(index);
       state.selectedCamera = null;
     } else {
-      if (state.selectedCamera !== null) {
-        restoreAmbient(state.selectedCamera);
-      }
       state.selectedCamera = index;
     }
     renderApp();
   }
 
   function handleBackToGrid() {
-    if (state.selectedCamera !== null) {
-      restoreAmbient(state.selectedCamera);
-    }
     state.selectedCamera = null;
     renderApp();
   }
 
   function triggerEvent(index) {
     const camera = CAMERAS[index];
-    if (!camera.events || camera.events.length === 0) return;
-    if (state.videoMode[index] === 'event') return;
+    if (!camera.eventVideo) return;
+    if (state.eventPlaying[index]) return;
+    if (state.cameraPhase[index] !== 'standard') return;
 
     const video = videoCache[index];
     if (!video) return;
 
-    state.loopTime[index] = video.currentTime;
+    state.eventPlaying[index] = true;
+    state.cameraPhase[index] = 'event';
 
-    const eventIdx = state.eventIndex[index] || 0;
-    const eventData = camera.events[eventIdx];
+    const preload = document.createElement('video');
+    preload.src = camera.eventVideo;
+    preload.muted = true;
+    preload.preload = 'auto';
 
-    state.eventIndex[index] = (eventIdx + 1) % camera.events.length;
+    preload.oncanplaythrough = () => {
+      video.loop = false;
+      video.src = camera.eventVideo;
+      video.currentTime = 0;
+      video.play().catch(() => transitionToPost(index));
 
-    state.videoMode[index] = 'event';
+      video.onended = () => transitionToPost(index);
+      video.onerror = () => transitionToPost(index);
 
-    video.loop = false;
-    video.src = eventData.src;
-    video.currentTime = 0;
-    video.play().catch(() => restoreAmbient(index));
+      preload.oncanplaythrough = null;
+      preload.src = '';
+    };
 
-    video.onended = () => restoreAmbient(index);
-    video.onerror = () => restoreAmbient(index);
+    preload.onerror = () => {
+      state.eventPlaying[index] = false;
+      state.cameraPhase[index] = 'standard';
+    };
+
+    preload.load();
   }
 
-  function restoreAmbient(index) {
-    if (state.videoMode[index] !== 'event') return;
-
+  function transitionToPost(index) {
     const camera = CAMERAS[index];
     const video = videoCache[index];
     if (!video) return;
@@ -270,12 +272,43 @@
     video.onended = null;
     video.onerror = null;
 
-    state.videoMode[index] = 'loop';
+    state.cameraPhase[index] = 'post';
+    state.eventPlaying[index] = false;
 
-    video.loop = true;
-    video.src = camera.video;
-    video.currentTime = state.loopTime[index] || 0;
-    video.play().catch(() => { });
+    const preload = document.createElement('video');
+    preload.src = camera.postLoop;
+    preload.muted = true;
+    preload.preload = 'auto';
+
+    preload.oncanplaythrough = () => {
+      video.loop = true;
+      video.src = camera.postLoop;
+      video.currentTime = 0;
+      video.play().catch(() => { });
+
+      state.selectedCamera = null;
+      renderApp();
+
+      preload.oncanplaythrough = null;
+      preload.src = '';
+    };
+
+    preload.onerror = () => {
+      video.loop = true;
+      video.src = camera.postLoop;
+      video.currentTime = 0;
+      video.play().catch(() => { });
+
+      state.selectedCamera = null;
+      renderApp();
+    };
+
+    preload.load();
+  }
+
+  function getVideoSourceForPhase(camera, index) {
+    const phase = state.cameraPhase[index] || 'standard';
+    return phase === 'post' ? camera.postLoop : camera.standardLoop;
   }
 
   function getRandomLog() {
@@ -372,6 +405,9 @@
 
   function initVideoCache() {
     CAMERAS.forEach((camera, index) => {
+      state.cameraPhase[index] = 'standard';
+      state.eventPlaying[index] = false;
+
       const video = document.createElement('video');
       video.className = 'camera-video';
       video.autoplay = true;
@@ -380,7 +416,7 @@
       video.playsInline = true;
 
       const source1 = document.createElement('source');
-      source1.src = camera.video;
+      source1.src = camera.standardLoop;
       source1.type = 'video/mp4';
       video.appendChild(source1);
 
@@ -420,18 +456,12 @@
 
       if (key in keyMap) {
         const index = keyMap[key];
-        if (state.selectedCamera !== null) {
-          restoreAmbient(state.selectedCamera);
-        }
         state.selectedCamera = index;
         renderApp();
         return;
       }
 
       if (key === 'g' || key === 'G') {
-        if (state.selectedCamera !== null) {
-          restoreAmbient(state.selectedCamera);
-        }
         state.selectedCamera = null;
         renderApp();
         return;
