@@ -220,6 +220,51 @@ body {
   font-weight: bold;
 }
 
+/* Header Responsiveness */
+@media (max-width: 900px) {
+  .status-title {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .status-bar {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+
+  .status-section {
+    gap: 12px;
+  }
+
+  .status-item {
+    gap: 4px;
+  }
+
+  .status-stats {
+    gap: 8px;
+  }
+
+  .status-time {
+    padding-left: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .status-stats {
+    display: none;
+  }
+
+  .status-section {
+    gap: 8px;
+  }
+
+  .status-time {
+    border-left: none;
+    padding-left: 0;
+  }
+}
+
 .main-content {
   flex: 1;
   display: flex;
